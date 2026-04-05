@@ -70,11 +70,12 @@ namespace ripemd160sse {
 
 #else
 
+#define _mm_not_si128(x) veorq_u32(x, vdupq_n_u32(0xFFFFFFFF))
 #define f1(x,y,z) _mm_xor_si128(x, _mm_xor_si128(y, z))
 #define f2(x,y,z) _mm_or_si128(_mm_and_si128(x,y),_mm_andnot_si128(x,z))
-#define f3(x,y,z) _mm_xor_si128(_mm_or_si128(x,~(y)),z)
+#define f3(x,y,z) _mm_xor_si128(_mm_or_si128(x,_mm_not_si128(y)),z)
 #define f4(x,y,z) _mm_or_si128(_mm_and_si128(x,z),_mm_andnot_si128(z,y))
-#define f5(x,y,z) _mm_xor_si128(x,_mm_or_si128(y,~(z)))
+#define f5(x,y,z) _mm_xor_si128(x,_mm_or_si128(y,_mm_not_si128(z)))
 
 #endif
 

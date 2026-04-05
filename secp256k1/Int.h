@@ -257,7 +257,7 @@ static inline unsigned char _subborrow_u64(unsigned char c, uint64_t a, uint64_t
 
 #elif defined(__aarch64__) || defined(__arm__)
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
-#if defined(__SIZEOF_INT128__) && (defined(__LP64__) || defined(_LP64))
+#if defined(__SIZEOF_INT128__)
     typedef __uint128_t uint128;
     uint128 res = (uint128)a * b;
     *h = (uint64_t)(res >> 64);
@@ -268,14 +268,14 @@ static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
     uint64_t b_lo = (uint32_t)b;
     uint64_t b_hi = b >> 32;
 
-    uint64_t lo_lo = a_lo * b_lo;
-    uint64_t hi_lo = a_hi * b_lo;
-    uint64_t lo_hi = a_lo * b_hi;
-    uint64_t hi_hi = a_hi * b_hi;
+    uint64_t lo = a_lo * b_lo;
+    uint64_t mid1 = a_hi * b_lo;
+    uint64_t mid2 = a_lo * b_hi;
+    uint64_t hi = a_hi * b_hi;
 
-    uint64_t mid = hi_lo + (lo_lo >> 32) + (uint32_t)lo_hi;
-    *h = hi_hi + (hi_lo >> 32) + (lo_hi >> 32) + (mid >> 32);
-    return (mid << 32) | (uint32_t)lo_lo;
+    uint64_t mid = (lo >> 32) + (uint32_t)mid1 + (uint32_t)mid2;
+    *h = hi + (mid1 >> 32) + (mid2 >> 32) + (mid >> 32);
+    return (mid << 32) | (uint32_t)lo;
 #endif
 }
 

@@ -2032,8 +2032,12 @@ int main(int argc, char **argv)	{
 
 		i = 0;
 
-		stats = (struct thread_stats*) calloc(NTHREADS, sizeof(struct thread_stats));
-		checkpointer((void *)stats, __FILE__, "calloc", "stats", __LINE__ - 1);
+		if (posix_memalign((void**)&stats, 64, NTHREADS * sizeof(struct thread_stats)) != 0) {
+			fprintf(stderr, "[E] posix_memalign stats\n");
+			exit(EXIT_FAILURE);
+		}
+		memset(stats, 0, NTHREADS * sizeof(struct thread_stats));
+		checkpointer((void *)stats, __FILE__, "posix_memalign", "stats", __LINE__ - 1);
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else
@@ -2095,8 +2099,12 @@ int main(int argc, char **argv)	{
 		free(aux);
 	}
 	if(FLAGMODE != MODE_BSGS)	{
-		stats = (struct thread_stats*) calloc(NTHREADS, sizeof(struct thread_stats));
-		checkpointer((void *)stats, __FILE__, "calloc", "stats", __LINE__ - 1);
+		if (posix_memalign((void**)&stats, 64, NTHREADS * sizeof(struct thread_stats)) != 0) {
+			fprintf(stderr, "[E] posix_memalign stats\n");
+			exit(EXIT_FAILURE);
+		}
+		memset(stats, 0, NTHREADS * sizeof(struct thread_stats));
+		checkpointer((void *)stats, __FILE__, "posix_memalign", "stats", __LINE__ - 1);
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else

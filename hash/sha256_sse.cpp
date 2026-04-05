@@ -32,10 +32,22 @@
 
 #if defined(__aarch64__) || defined(__arm__)
 
+// Reverse lanes in a uint32x4_t: [0,1,2,3] -> [3,2,1,0]
+static inline uint32x4_t vrev_u32(uint32x4_t x) {
+    return vcombine_u32(vrev64_u32(vget_high_u32(x)), vrev64_u32(vget_low_u32(x)));
+}
+
 // ARMv8 Crypto SHA256 Implementation
 static inline void sha256_armv8_block(uint32_t *state, const uint32_t *data) {
-    uint32x4_t abcd = vld1q_u32(&state[0]);
-    uint32x4_t efgh = vld1q_u32(&state[4]);
+    // ARMv8 SHA256 instructions expect state in reversed word order:
+    // abcd lanes: [3]=A, [2]=B, [1]=C, [0]=D
+    // efgh lanes: [3]=E, [2]=F, [1]=G, [0]=H
+    uint32x4_t abcd = vrev_u32(vld1q_u32(&state[0]));
+    uint32x4_t efgh = vrev_u32(vld1q_u32(&state[4]));
+    
+    // Save original state for final addition (SHA256 standard)
+    uint32x4_t abcd_orig = abcd;
+    uint32x4_t efgh_orig = efgh;
     
     uint32x4_t w0 = vld1q_u32(&data[0]);
     uint32x4_t w1 = vld1q_u32(&data[4]);
@@ -118,10 +130,8 @@ static inline void sha256_armv8_block(uint32_t *state, const uint32_t *data) {
         abcd = tmp;
     }
 
-    uint32x4_t s0 = vld1q_u32(&state[0]);
-    uint32x4_t s1 = vld1q_u32(&state[4]);
-    vst1q_u32(&state[0], vaddq_u32(abcd, s0));
-    vst1q_u32(&state[4], vaddq_u32(efgh, s1));
+    vst1q_u32(&state[0], vrev_u32(vaddq_u32(abcd, abcd_orig)));
+    vst1q_u32(&state[4], vrev_u32(vaddq_u32(efgh, efgh_orig)));
 }
 
 static const uint32_t sha256_initial_state[] = {
@@ -130,6 +140,26 @@ static const uint32_t sha256_initial_state[] = {
 };
 
 void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+    uint32_t state[8];
+    // i0
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i0);
+    for(int i=0; i<8; i++) ((uint32_t*)d0)[i] = __builtin_bswap32(state[i]);
+    // i1
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i1);
+    for(int i=0; i<8; i++) ((uint32_t*)d1)[i] = __builtin_bswap32(state[i]);
+    // i2
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i2);
+    for(int i=0; i<8; i++) ((uint32_t*)d2)[i] = __builtin_bswap32(state[i]);
+    // i3
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i3);
+    for(int i=0; i<8; i++) ((uint32_t*)d3)[i] = __builtin_bswap32(state[i]);
+}
+
+void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
     uint32_t state[8];
     // i0
     memcpy(state, sha256_initial_state, 32);
@@ -151,11 +181,6 @@ void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_
     sha256_armv8_block(state, i3);
     sha256_armv8_block(state, i3 + 16);
     for(int i=0; i<8; i++) ((uint32_t*)d3)[i] = __builtin_bswap32(state[i]);
-}
-
-void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
-    // 2 blocks is the same as 1B for the first 2 blocks of 64 bytes.
-    sha256sse_1B(i0, i1, i2, i3, d0, d1, d2, d3);
 }
 
 void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
