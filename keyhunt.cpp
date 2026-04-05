@@ -889,7 +889,7 @@ int main(int argc, char **argv)	{
 				N_SEQUENTIAL_MAX = 0x100000000;
 			}
 		}
-		printf("[+] N = %p\n",(void*)N_SEQUENTIAL_MAX);
+		printf("[+] N = 0x%" PRIx64 "\n", N_SEQUENTIAL_MAX);
 		if(FLAGMODE == MODE_MINIKEYS)	{
 			BSGS_N.SetInt32(DEBUGCOUNT);
 			if(FLAGBASEMINIKEY)	{
@@ -2212,7 +2212,7 @@ int main(int argc, char **argv)	{
 						sprintf(buffer,"[+] Total %s keys in %s seconds: %s keys/s\n",str_total,str_seconds,str_pretotal);
 					}
 					else	{
-						sprintf(buffer,"\r[+] Total %s keys in %s seconds: %s keys/s\r",str_total,str_seconds,str_pretotal);
+						sprintf(buffer,"\r[+] Total %s keys in %s seconds: %s keys/s          ",str_total,str_seconds,str_pretotal);
 					}
 				}
 				else	{
@@ -2235,10 +2235,10 @@ int main(int argc, char **argv)	{
 					}
 					else	{
 						if(THREADOUTPUT == 1)	{
-							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)\r",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
+							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)          ",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
 						}
 						else	{
-							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)\r",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
+							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)          ",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
 						}
 					}
 					free(str_divpretotal);
