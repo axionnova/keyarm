@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__arm__)
 
 // ARMv8 Crypto SHA256 Implementation
 static inline void sha256_armv8_block(uint32_t *state, const uint32_t *data) {
