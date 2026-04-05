@@ -83,5 +83,5 @@ legacy:
 	rm -r *.o
 
 clean:
-	rm keyhunt
-	rm bsgsd
+	rm -f keyhunt
+	rm -f bsgsd

@@ -257,9 +257,25 @@ static inline unsigned char _subborrow_u64(unsigned char c, uint64_t a, uint64_t
 
 #elif defined(__aarch64__) || defined(__arm__)
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
+#if defined(__SIZEOF_INT128__)
     unsigned __int128 res = (unsigned __int128)a * b;
     *h = (uint64_t)(res >> 64);
     return (uint64_t)res;
+#else
+    uint64_t a_lo = (uint32_t)a;
+    uint64_t a_hi = a >> 32;
+    uint64_t b_lo = (uint32_t)b;
+    uint64_t b_hi = b >> 32;
+
+    uint64_t lo_lo = a_lo * b_lo;
+    uint64_t hi_lo = a_hi * b_lo;
+    uint64_t lo_hi = a_lo * b_hi;
+    uint64_t hi_hi = a_hi * b_hi;
+
+    uint64_t mid = hi_lo + (lo_lo >> 32) + (uint32_t)lo_hi;
+    *h = hi_hi + (hi_lo >> 32) + (lo_hi >> 32) + (mid >> 32);
+    return (mid << 32) | (uint32_t)lo_lo;
+#endif
 }
 
 static uint64_t inline __shiftright128(uint64_t a, uint64_t b, unsigned char n) {
