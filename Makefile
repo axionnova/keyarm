@@ -21,25 +21,25 @@ default:
 	rm -r *.o
 
 armv8:
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c oldbloom/bloom.cpp -o oldbloom.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c bloom/bloom.cpp -o bloom.o
-	gcc -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-unused-parameter -c base58/base58.c -o base58.o
-	gcc -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -c rmd160/rmd160.c -o rmd160.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c sha3/sha3.c -o sha3.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c sha3/keccak.c -o keccak.o
-	gcc -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -c xxhash/xxhash.c -o xxhash.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c util.c -o util.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Int.cpp -o Int.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Point.cpp -o Point.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/SECP256K1.cpp -o SECP256K1.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/IntMod.cpp -o IntMod.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Random.cpp -o Random.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/IntGroup.cpp -o IntGroup.o
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/ripemd160.o -c hash/ripemd160.cpp
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/sha256.o -c hash/sha256.cpp
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/ripemd160_sse.o -c hash/ripemd160_sse.cpp
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/sha256_sse.o -c hash/sha256_sse.cpp
-	g++ -O3 -march=armv8-a+crypto -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o keyhunt keyhunt.cpp base58.o rmd160.o hash/ripemd160.o hash/ripemd160_sse.o hash/sha256.o hash/sha256_sse.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o SECP256K1.o  IntMod.o  Random.o IntGroup.o sha3.o keccak.o  -lm -lpthread
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c oldbloom/bloom.cpp -o oldbloom.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c bloom/bloom.cpp -o bloom.o
+	gcc -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-unused-parameter -c base58/base58.c -o base58.o
+	gcc -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -c rmd160/rmd160.c -o rmd160.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c sha3/sha3.c -o sha3.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c sha3/keccak.c -o keccak.o
+	gcc -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -c xxhash/xxhash.c -o xxhash.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c util.c -o util.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Int.cpp -o Int.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Point.cpp -o Point.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/SECP256K1.cpp -o SECP256K1.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/IntMod.cpp -o IntMod.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/Random.cpp -o Random.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c secp256k1/IntGroup.cpp -o IntGroup.o
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/ripemd160.o -c hash/ripemd160.cpp
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/sha256.o -c hash/sha256.cpp
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/ripemd160_sse.o -c hash/ripemd160_sse.cpp
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/sha256_sse.o -c hash/sha256_sse.cpp
+	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o keyhunt keyhunt.cpp base58.o rmd160.o hash/ripemd160.o hash/ripemd160_sse.o hash/sha256.o hash/sha256_sse.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o SECP256K1.o  IntMod.o  Random.o IntGroup.o sha3.o keccak.o  -lm -lpthread
 	rm -r *.o
 
 bsgsd:

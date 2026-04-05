@@ -195,34 +195,67 @@ private:
 
 // Inline routines
 
-#ifndef _WIN64
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
 
 // Missing intrinsics
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
+#if defined(__x86_64__)
   uint64_t rhi;
   uint64_t rlo;
   __asm__( "mulq  %[b];" :"=d"(rhi),"=a"(rlo) :"1"(a),[b]"rm"(b));
     *h = rhi;
     return rlo;
+#else
+    // 32-bit x86 or other
+    unsigned __int128 res = (unsigned __int128)a * b;
+    *h = (uint64_t)(res >> 64);
+    return (uint64_t)res;
+#endif
 }
 
 static uint64_t inline __shiftright128(uint64_t a, uint64_t b,unsigned char n) {
+#if defined(__x86_64__)
   uint64_t c;
   __asm__ ("movq %1,%0;shrdq %3,%2,%0;" : "=D"(c) : "r"(a),"r"(b),"c"(n));
   return  c;
+#else
+  if (n == 0) return a;
+  return (a >> n) | (b << (64 - n));
+#endif
 }
 
 
 static uint64_t inline __shiftleft128(uint64_t a, uint64_t b,unsigned char n) {
+#if defined(__x86_64__)
   uint64_t c;
   __asm__ ("movq %1,%0;shldq %3,%2,%0;" : "=D"(c) : "r"(b),"r"(a),"c"(n));
   return  c;
+#else
+  if (n == 0) return b;
+  return (b << n) | (a >> (64 - n));
+#endif
 }
 
+#if defined(__GNUC__) && defined(__x86_64__)
 #define _subborrow_u64(a,b,c,d) __builtin_ia32_sbb_u64(a,b,c,(long long unsigned int*)d);
 #define _addcarry_u64(a,b,c,d) __builtin_ia32_addcarryx_u64(a,b,c,(long long unsigned int*)d);
+#else
+static inline unsigned char _addcarry_u64(unsigned char c, uint64_t a, uint64_t b, unsigned long long *out) {
+    unsigned long long res;
+    unsigned char c1 = __builtin_add_overflow(a, b, &res);
+    unsigned char c2 = __builtin_add_overflow(res, c, out);
+    return c1 | c2;
+}
+static inline unsigned char _subborrow_u64(unsigned char c, uint64_t a, uint64_t b, unsigned long long *out) {
+    unsigned long long res;
+    unsigned char c1 = __builtin_sub_overflow(a, b, &res);
+    unsigned char c2 = __builtin_sub_overflow(res, c, out);
+    return c1 | c2;
+}
+#endif
 #define _byteswap_uint64 __builtin_bswap64
-#elif defined(__aarch64__)
+
+#elif defined(__aarch64__) || defined(__arm__)
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
     unsigned __int128 res = (unsigned __int128)a * b;
     *h = (uint64_t)(res >> 64);
