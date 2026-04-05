@@ -16,6 +16,12 @@
 */
 
 #include "sha256.h"
+#if defined(__arm__)
+#pragma GCC target ("fpu=crypto-neon-fp-armv8")
+#elif defined(__aarch64__)
+#pragma GCC target ("arch=armv8-a+crypto")
+#endif
+
 #if (defined(__x86_64__) || defined(_M_X64)) && !defined(__arm__) && !defined(__aarch64__)
 #include <immintrin.h>
 #elif defined(__aarch64__) || defined(__arm__)
@@ -26,9 +32,6 @@
 
 #if defined(__aarch64__) || defined(__arm__)
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((target("+crypto")))
-#endif
 // ARMv8 Crypto SHA256 Implementation
 static inline void sha256_armv8_block(uint32_t *state, const uint32_t *data) {
     uint32x4_t abcd = vld1q_u32(&state[0]);
@@ -126,9 +129,6 @@ static const uint32_t sha256_initial_state[] = {
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((target("+crypto")))
-#endif
 void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
     uint32_t state[8];
     // i0
@@ -153,17 +153,11 @@ void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_
     for(int i=0; i<8; i++) ((uint32_t*)d3)[i] = __builtin_bswap32(state[i]);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((target("+crypto")))
-#endif
 void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
     // 2 blocks is the same as 1B for the first 2 blocks of 64 bytes.
     sha256sse_1B(i0, i1, i2, i3, d0, d1, d2, d3);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((target("+crypto")))
-#endif
 void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
     uint32_t state[8];
     // i0
