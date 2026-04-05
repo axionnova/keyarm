@@ -17,7 +17,24 @@
 
 #include "ripemd160.h"
 #include <string.h>
+#if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
+#elif defined(__aarch64__)
+#include <arm_neon.h>
+typedef uint32x4_t __m128i;
+#define _mm_set1_epi32(x) vdupq_n_u32(x)
+#define _mm_setzero_si128() vdupq_n_u32(0)
+#define _mm_add_epi32(x, y) vaddq_u32(x, y)
+#define _mm_xor_si128(x, y) veorq_u32(x, y)
+#define _mm_or_si128(x, y) vorrq_u32(x, y)
+#define _mm_and_si128(x, y) vandq_u32(x, y)
+#define _mm_andnot_si128(x, y) vbicq_u32(y, x)
+#define _mm_slli_epi32(x, n) vshlq_n_u32(x, n)
+#define _mm_srli_epi32(x, n) vshrq_n_u32(x, n)
+#define _mm_load_si128(p) vld1q_u32((uint32_t const *)(p))
+#define _mm_store_si128(p, x) vst1q_u32((uint32_t *)(p), x)
+#define _mm_set_epi32(w,z,y,x) ((uint32x4_t){(uint32_t)(x),(uint32_t)(y),(uint32_t)(z),(uint32_t)(w)})
+#endif
 
 // Internal SSE RIPEMD-160 implementation.
 namespace ripemd160sse {

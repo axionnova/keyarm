@@ -264,8 +264,13 @@ struct bloom *vanity_bloom = NULL;
 
 struct bloom bloom;
 
-uint64_t *steps = NULL;
-unsigned int *ends = NULL;
+struct thread_stats {
+	uint64_t steps;
+	unsigned int ends;
+	char padding[64 - sizeof(uint64_t) - sizeof(unsigned int)];
+} __attribute__((aligned(64)));
+
+struct thread_stats *stats = NULL;
 uint64_t N = 0;
 
 uint64_t N_SEQUENTIAL_MAX = 0x100000000;
@@ -2027,10 +2032,8 @@ int main(int argc, char **argv)	{
 
 		i = 0;
 
-		steps = (uint64_t *) calloc(NTHREADS,sizeof(uint64_t));
-		checkpointer((void *)steps,__FILE__,"calloc","steps" ,__LINE__ -1 );
-		ends = (unsigned int *) calloc(NTHREADS,sizeof(int));
-		checkpointer((void *)ends,__FILE__,"calloc","ends" ,__LINE__ -1 );
+		stats = (struct thread_stats*) calloc(NTHREADS, sizeof(struct thread_stats));
+		checkpointer((void *)stats, __FILE__, "calloc", "stats", __LINE__ - 1);
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else
@@ -2042,7 +2045,7 @@ int main(int argc, char **argv)	{
 			tt = (tothread*) malloc(sizeof(struct tothread));
 			checkpointer((void *)tt,__FILE__,"malloc","tt" ,__LINE__ -1 );
 			tt->nt = j;
-			steps[j] = 0;
+			stats[j].steps = 0;
 			s = 0;
 			switch(FLAGBSGSMODE)	{
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -2092,10 +2095,8 @@ int main(int argc, char **argv)	{
 		free(aux);
 	}
 	if(FLAGMODE != MODE_BSGS)	{
-		steps = (uint64_t *) calloc(NTHREADS,sizeof(uint64_t));
-		checkpointer((void *)steps,__FILE__,"calloc","steps" ,__LINE__ -1 );
-		ends = (unsigned int *) calloc(NTHREADS,sizeof(int));
-		checkpointer((void *)ends,__FILE__,"calloc","ends" ,__LINE__ -1 );
+		stats = (struct thread_stats*) calloc(NTHREADS, sizeof(struct thread_stats));
+		checkpointer((void *)stats, __FILE__, "calloc", "stats", __LINE__ - 1);
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else
@@ -2106,7 +2107,7 @@ int main(int argc, char **argv)	{
 			tt = (tothread*) malloc(sizeof(struct tothread));
 			checkpointer((void *)tt,__FILE__,"malloc","tt" ,__LINE__ -1 );
 			tt->nt = j;
-			steps[j] = 0;
+			stats[j].steps = 0;
 			s = 0;
 			switch(FLAGMODE)	{
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -2156,7 +2157,7 @@ int main(int argc, char **argv)	{
 		seconds.AddOne();
 		check_flag = 1;
 		for(j = 0; j <NTHREADS && check_flag; j++) {
-			check_flag &= ends[j];
+			check_flag &= stats[j].ends;
 		}
 		if(check_flag)	{
 			continue_flag = 0;
@@ -2168,7 +2169,7 @@ int main(int argc, char **argv)	{
 				total.SetInt32(0);
 				for(j = 0; j < NTHREADS; j++) {
 					pretotal.Set(&debugcount_mpz);
-					pretotal.Mult(steps[j]);					
+					pretotal.Mult(stats[j].steps);					
 					total.Add(&pretotal);
 				}
 				
@@ -2496,11 +2497,12 @@ void *thread_process_minikeys(void *vargp)	{
 						}
 					}
 				}
-				steps[thread_number]++;
+				stats[thread_number].steps++;
 				count+=1024;
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	}while(continue_flag);
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -3073,7 +3075,7 @@ void *thread_process(void *vargp)	{
 				}
 				*/
 
-				steps[thread_number]++;
+				stats[thread_number].steps++;
 
 				// Next start point (startP + GRP_SIZE*G)
 				pp = startP;
@@ -3094,7 +3096,7 @@ void *thread_process(void *vargp)	{
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	} while(continue_flag);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -3510,7 +3512,7 @@ void *thread_process_vanity(void *vargp)	{
 					temp_stride.Mult(&stride);
 					key_mpz.Add(&temp_stride);
 				}
-				steps[thread_number]++;
+				stats[thread_number].steps++;
 
 				// Next start point (startP + GRP_SIZE*G)
 				pp = startP;
@@ -3531,7 +3533,7 @@ void *thread_process_vanity(void *vargp)	{
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	} while(continue_flag);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -4002,9 +4004,9 @@ pn.y.ModAdd(&GSn[i].y);
 				} // end while
 			}// End if 
 		}
-		steps[thread_number]+=2;
+		stats[thread_number].steps+=2;
 	}while(1);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -4257,9 +4259,9 @@ pn.y.ModAdd(&GSn[i].y);
 			}	//End if
 		} // End for with k bsgs_point_number
 
-		steps[thread_number]+=2;
+		stats[thread_number].steps+=2;
 	}while(1);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -5060,9 +5062,9 @@ pn.y.ModAdd(&GSn[i].y);
 				}//while all the aMP points
 			}// End if 
 		}
-		steps[thread_number]+=2;
+		stats[thread_number].steps+=2;
 	}while(1);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -5317,9 +5319,9 @@ pn.y.ModAdd(&GSn[i].y);
 				}//while all the aMP points
 			}// End if 
 		}
-		steps[thread_number]+=2;
+		stats[thread_number].steps+=2;
 	}while(1);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -5602,9 +5604,9 @@ void *thread_process_bsgs_both(void *vargp)	{
 					}//while all the aMP points
 			}// End if 
 		}
-		steps[thread_number]+=2;	
+		stats[thread_number].steps+=2;	
 	}while(1);
-	ends[thread_number] = 1;
+	stats[thread_number].ends = 1;
 	return NULL;
 }
 

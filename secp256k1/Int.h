@@ -222,6 +222,37 @@ static uint64_t inline __shiftleft128(uint64_t a, uint64_t b,unsigned char n) {
 #define _subborrow_u64(a,b,c,d) __builtin_ia32_sbb_u64(a,b,c,(long long unsigned int*)d);
 #define _addcarry_u64(a,b,c,d) __builtin_ia32_addcarryx_u64(a,b,c,(long long unsigned int*)d);
 #define _byteswap_uint64 __builtin_bswap64
+#elif defined(__aarch64__)
+static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
+    unsigned __int128 res = (unsigned __int128)a * b;
+    *h = (uint64_t)(res >> 64);
+    return (uint64_t)res;
+}
+
+static uint64_t inline __shiftright128(uint64_t a, uint64_t b, unsigned char n) {
+    if (n == 0) return a;
+    return (a >> n) | (b << (64 - n));
+}
+
+static uint64_t inline __shiftleft128(uint64_t a, uint64_t b, unsigned char n) {
+    if (n == 0) return b;
+    return (b << n) | (a >> (64 - n));
+}
+
+static inline unsigned char _addcarry_u64(unsigned char c, uint64_t a, uint64_t b, unsigned long long *out) {
+    unsigned long long res;
+    unsigned char c1 = __builtin_add_overflow(a, b, &res);
+    unsigned char c2 = __builtin_add_overflow(res, c, out);
+    return c1 | c2;
+}
+
+static inline unsigned char _subborrow_u64(unsigned char c, uint64_t a, uint64_t b, unsigned long long *out) {
+    unsigned long long res;
+    unsigned char c1 = __builtin_sub_overflow(a, b, &res);
+    unsigned char c2 = __builtin_sub_overflow(res, c, out);
+    return c1 | c2;
+}
+#define _byteswap_uint64 __builtin_bswap64
 #else
 #include <intrin.h>
 #endif

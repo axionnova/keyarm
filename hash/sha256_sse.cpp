@@ -16,9 +16,163 @@
 */
 
 #include "sha256.h"
+#if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
+#elif defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 #include <string.h>
 #include <stdint.h>
+
+#if defined(__aarch64__)
+
+// ARMv8 Crypto SHA256 Implementation
+static inline void sha256_armv8_block(uint32_t *state, const uint32_t *data) {
+    uint32x4_t abcd = vld1q_u32(&state[0]);
+    uint32x4_t efgh = vld1q_u32(&state[4]);
+    
+    uint32x4_t w0 = vld1q_u32(&data[0]);
+    uint32x4_t w1 = vld1q_u32(&data[4]);
+    uint32x4_t w2 = vld1q_u32(&data[8]);
+    uint32x4_t w3 = vld1q_u32(&data[12]);
+    
+    // Reverse byte order (big-endian for SHA256)
+    w0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w0)));
+    w1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w1)));
+    w2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w2)));
+    w3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(w3)));
+
+    uint32x4_t k0_3 = {0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5};
+    uint32x4_t k4_7 = {0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5};
+    uint32x4_t k8_11 = {0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3};
+    uint32x4_t k12_15 = {0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174};
+    uint32x4_t k16_19 = {0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc};
+    uint32x4_t k20_23 = {0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da};
+    uint32x4_t k24_27 = {0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7};
+    uint32x4_t k28_31 = {0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967};
+    uint32x4_t k32_35 = {0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13};
+    uint32x4_t k36_39 = {0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85};
+    uint32x4_t k40_43 = {0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3};
+    uint32x4_t k44_47 = {0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070};
+    uint32x4_t k48_51 = {0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5};
+    uint32x4_t k52_55 = {0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3};
+    uint32x4_t k56_59 = {0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208};
+    uint32x4_t k60_63 = {0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+
+    uint32x4_t msg0, msg1, msg2, msg3, tmp;
+
+    // Rounds 0-3
+    msg0 = vaddq_u32(w0, k0_3);
+    tmp = vsha256hq_u32(abcd, efgh, msg0);
+    efgh = vsha256h2q_u32(efgh, abcd, msg0);
+    abcd = tmp;
+    // Rounds 4-7
+    msg1 = vaddq_u32(w1, k4_7);
+    tmp = vsha256hq_u32(abcd, efgh, msg1);
+    efgh = vsha256h2q_u32(efgh, abcd, msg1);
+    abcd = tmp;
+    // Rounds 8-11
+    msg2 = vaddq_u32(w2, k8_11);
+    tmp = vsha256hq_u32(abcd, efgh, msg2);
+    efgh = vsha256h2q_u32(efgh, abcd, msg2);
+    abcd = tmp;
+    // Rounds 12-15
+    msg3 = vaddq_u32(w3, k12_15);
+    tmp = vsha256hq_u32(abcd, efgh, msg3);
+    efgh = vsha256h2q_u32(efgh, abcd, msg3);
+    abcd = tmp;
+
+    for (int i = 0; i < 3; i++) {
+        w0 = vsha256su0q_u32(w0, w1);
+        w0 = vsha256su1q_u32(w0, w2, w3);
+        msg0 = vaddq_u32(w0, (i==0?k16_19:(i==1?k32_35:k48_51)));
+        tmp = vsha256hq_u32(abcd, efgh, msg0);
+        efgh = vsha256h2q_u32(efgh, abcd, msg0);
+        abcd = tmp;
+
+        w1 = vsha256su0q_u32(w1, w2);
+        w1 = vsha256su1q_u32(w1, w3, w0);
+        msg1 = vaddq_u32(w1, (i==0?k20_23:(i==1?k36_39:k52_55)));
+        tmp = vsha256hq_u32(abcd, efgh, msg1);
+        efgh = vsha256h2q_u32(efgh, abcd, msg1);
+        abcd = tmp;
+
+        w2 = vsha256su0q_u32(w2, w3);
+        w2 = vsha256su1q_u32(w2, w0, w1);
+        msg2 = vaddq_u32(w2, (i==0?k24_27:(i==1?k40_43:k56_59)));
+        tmp = vsha256hq_u32(abcd, efgh, msg2);
+        efgh = vsha256h2q_u32(efgh, abcd, msg2);
+        abcd = tmp;
+
+        w3 = vsha256su0q_u32(w3, w0);
+        w3 = vsha256su1q_u32(w3, w1, w2);
+        msg3 = vaddq_u32(w3, (i==0?k28_31:(i==1?k44_47:k60_63)));
+        tmp = vsha256hq_u32(abcd, efgh, msg3);
+        efgh = vsha256h2q_u32(efgh, abcd, msg3);
+        abcd = tmp;
+    }
+
+    uint32x4_t s0 = vld1q_u32(&state[0]);
+    uint32x4_t s1 = vld1q_u32(&state[4]);
+    vst1q_u32(&state[0], vaddq_u32(abcd, s0));
+    vst1q_u32(&state[4], vaddq_u32(efgh, s1));
+}
+
+static const uint32_t sha256_initial_state[] = {
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+};
+
+void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+    uint32_t state[8];
+    // i0
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i0);
+    sha256_armv8_block(state, i0 + 16);
+    for(int i=0; i<8; i++) ((uint32_t*)d0)[i] = __builtin_bswap32(state[i]);
+    // i1
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i1);
+    sha256_armv8_block(state, i1 + 16);
+    for(int i=0; i<8; i++) ((uint32_t*)d1)[i] = __builtin_bswap32(state[i]);
+    // i2
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i2);
+    sha256_armv8_block(state, i2 + 16);
+    for(int i=0; i<8; i++) ((uint32_t*)d2)[i] = __builtin_bswap32(state[i]);
+    // i3
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i3);
+    sha256_armv8_block(state, i3 + 16);
+    for(int i=0; i<8; i++) ((uint32_t*)d3)[i] = __builtin_bswap32(state[i]);
+}
+
+void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+    // 2 blocks is the same as 1B for the first 2 blocks of 64 bytes.
+    sha256sse_1B(i0, i1, i2, i3, d0, d1, d2, d3);
+}
+
+void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3, uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+    uint32_t state[8];
+    // i0
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i0);
+    *((uint32_t *)d0) = __builtin_bswap32(state[0]);
+    // i1
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i1);
+    *((uint32_t *)d1) = __builtin_bswap32(state[0]);
+    // i2
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i2);
+    *((uint32_t *)d2) = __builtin_bswap32(state[0]);
+    // i3
+    memcpy(state, sha256_initial_state, 32);
+    sha256_armv8_block(state, i3);
+    *((uint32_t *)d3) = __builtin_bswap32(state[0]);
+}
+
+#else
 
 namespace _sha256sse
 {
@@ -38,13 +192,6 @@ namespace _sha256sse
       0x1f83d9ab,0x1f83d9ab,0x1f83d9ab,0x1f83d9ab,
       0x5be0cd19,0x5be0cd19,0x5be0cd19,0x5be0cd19
   };
-
-//#define Maj(x,y,z) ((x&y)^(x&z)^(y&z))
-//#define Ch(x,y,z)  ((x&y)^(~x&z))
-
-// The following functions are equivalent to the above
-//#define Maj(x,y,z) ((x & y) | (z & (x | y)))
-//#define Ch(x,y,z) (z ^ (x & (y ^ z)))
 
 #define Maj(b,c,d) _mm_or_si128(_mm_and_si128(b, c), _mm_and_si128(d, _mm_or_si128(b, c)) )
 #define Ch(b,c,d)  _mm_xor_si128(_mm_and_si128(b, c) , _mm_andnot_si128(b , d) )
@@ -317,186 +464,14 @@ namespace _sha256sse
     Round(c, d, e, f, g, h, a, b, 0xBEF9A3F7, w14);
     Round(b, c, d, e, f, g, h, a, 0xC67178F2, w15);
 
-    w0 = _mm_add_epi32(a, s[0]);
-    w1 = _mm_add_epi32(b, s[1]);
-    w2 = _mm_add_epi32(c, s[2]);
-    w3 = _mm_add_epi32(d, s[3]);
-    w4 = _mm_add_epi32(e, s[4]);
-    w5 = _mm_add_epi32(f, s[5]);
-    w6 = _mm_add_epi32(g, s[6]);
-    w7 = _mm_add_epi32(h, s[7]);
-    w8 = _mm_set1_epi32(0x80000000);
-    w9 = _mm_xor_si128(w9,w9);
-    w10 = _mm_xor_si128(w10, w10);
-    w11 = _mm_xor_si128(w11, w11);
-    w12 = _mm_xor_si128(w12, w12);
-    w13 = _mm_xor_si128(w13, w13);
-    w14 = _mm_xor_si128(w14, w14);
-    w15 = _mm_set1_epi32(0x100);
-
-    a = _mm_load_si128(s + 0);
-    b = _mm_load_si128(s + 1);
-    c = _mm_load_si128(s + 2);
-    d = _mm_load_si128(s + 3);
-    e = _mm_load_si128(s + 4);
-    f = _mm_load_si128(s + 5);
-    g = _mm_load_si128(s + 6);
-    h = _mm_load_si128(s + 7);
-
-    Round(a, b, c, d, e, f, g, h, 0x428A2F98, w0);
-    Round(h, a, b, c, d, e, f, g, 0x71374491, w1);
-    Round(g, h, a, b, c, d, e, f, 0xB5C0FBCF, w2);
-    Round(f, g, h, a, b, c, d, e, 0xE9B5DBA5, w3);
-    Round(e, f, g, h, a, b, c, d, 0x3956C25B, w4);
-    Round(d, e, f, g, h, a, b, c, 0x59F111F1, w5);
-    Round(c, d, e, f, g, h, a, b, 0x923F82A4, w6);
-    Round(b, c, d, e, f, g, h, a, 0xAB1C5ED5, w7);
-    Round(a, b, c, d, e, f, g, h, 0xD807AA98, w8);
-    Round(h, a, b, c, d, e, f, g, 0x12835B01, w9);
-    Round(g, h, a, b, c, d, e, f, 0x243185BE, w10);
-    Round(f, g, h, a, b, c, d, e, 0x550C7DC3, w11);
-    Round(e, f, g, h, a, b, c, d, 0x72BE5D74, w12);
-    Round(d, e, f, g, h, a, b, c, 0x80DEB1FE, w13);
-    Round(c, d, e, f, g, h, a, b, 0x9BDC06A7, w14);
-    Round(b, c, d, e, f, g, h, a, 0xC19BF174, w15);
-
-    WMIX()
-
-    Round(a, b, c, d, e, f, g, h, 0xE49B69C1, w0);
-    Round(h, a, b, c, d, e, f, g, 0xEFBE4786, w1);
-    Round(g, h, a, b, c, d, e, f, 0x0FC19DC6, w2);
-    Round(f, g, h, a, b, c, d, e, 0x240CA1CC, w3);
-    Round(e, f, g, h, a, b, c, d, 0x2DE92C6F, w4);
-    Round(d, e, f, g, h, a, b, c, 0x4A7484AA, w5);
-    Round(c, d, e, f, g, h, a, b, 0x5CB0A9DC, w6);
-    Round(b, c, d, e, f, g, h, a, 0x76F988DA, w7);
-    Round(a, b, c, d, e, f, g, h, 0x983E5152, w8);
-    Round(h, a, b, c, d, e, f, g, 0xA831C66D, w9);
-    Round(g, h, a, b, c, d, e, f, 0xB00327C8, w10);
-    Round(f, g, h, a, b, c, d, e, 0xBF597FC7, w11);
-    Round(e, f, g, h, a, b, c, d, 0xC6E00BF3, w12);
-    Round(d, e, f, g, h, a, b, c, 0xD5A79147, w13);
-    Round(c, d, e, f, g, h, a, b, 0x06CA6351, w14);
-    Round(b, c, d, e, f, g, h, a, 0x14292967, w15);
-
-    WMIX()
-
-    Round(a, b, c, d, e, f, g, h, 0x27B70A85, w0);
-    Round(h, a, b, c, d, e, f, g, 0x2E1B2138, w1);
-    Round(g, h, a, b, c, d, e, f, 0x4D2C6DFC, w2);
-    Round(f, g, h, a, b, c, d, e, 0x53380D13, w3);
-    Round(e, f, g, h, a, b, c, d, 0x650A7354, w4);
-    Round(d, e, f, g, h, a, b, c, 0x766A0ABB, w5);
-    Round(c, d, e, f, g, h, a, b, 0x81C2C92E, w6);
-    Round(b, c, d, e, f, g, h, a, 0x92722C85, w7);
-    Round(a, b, c, d, e, f, g, h, 0xA2BFE8A1, w8);
-    Round(h, a, b, c, d, e, f, g, 0xA81A664B, w9);
-    Round(g, h, a, b, c, d, e, f, 0xC24B8B70, w10);
-    Round(f, g, h, a, b, c, d, e, 0xC76C51A3, w11);
-    Round(e, f, g, h, a, b, c, d, 0xD192E819, w12);
-    Round(d, e, f, g, h, a, b, c, 0xD6990624, w13);
-    Round(c, d, e, f, g, h, a, b, 0xF40E3585, w14);
-    Round(b, c, d, e, f, g, h, a, 0x106AA070, w15);
-
-    WMIX()
-
-    Round(a, b, c, d, e, f, g, h, 0x19A4C116, w0);
-    Round(h, a, b, c, d, e, f, g, 0x1E376C08, w1);
-    Round(g, h, a, b, c, d, e, f, 0x2748774C, w2);
-    Round(f, g, h, a, b, c, d, e, 0x34B0BCB5, w3);
-    Round(e, f, g, h, a, b, c, d, 0x391C0CB3, w4);
-    Round(d, e, f, g, h, a, b, c, 0x4ED8AA4A, w5);
-    Round(c, d, e, f, g, h, a, b, 0x5B9CCA4F, w6);
-    Round(b, c, d, e, f, g, h, a, 0x682E6FF3, w7);
-    Round(a, b, c, d, e, f, g, h, 0x748F82EE, w8);
-    Round(h, a, b, c, d, e, f, g, 0x78A5636F, w9);
-    Round(g, h, a, b, c, d, e, f, 0x84C87814, w10);
-    Round(f, g, h, a, b, c, d, e, 0x8CC70208, w11);
-    Round(e, f, g, h, a, b, c, d, 0x90BEFFFA, w12);
-    Round(d, e, f, g, h, a, b, c, 0xA4506CEB, w13);
-    Round(c, d, e, f, g, h, a, b, 0xBEF9A3F7, w14);
-    Round(b, c, d, e, f, g, h, a, 0xC67178F2, w15);
-
     s[0] = _mm_add_epi32(a, s[0]);
 
   }
 
-} // end namespace
-
-void sha256sse_1B(
-  uint32_t *i0,
-  uint32_t *i1,
-  uint32_t *i2,
-  uint32_t *i3,
-  unsigned char *d0,
-  unsigned char *d1,
-  unsigned char *d2,
-  unsigned char *d3) {
-
-  __m128i s[8];
-
-  _sha256sse::Initialize(s);
-  _sha256sse::Transform(s,i0,i1,i2,i3);
-
-  // Unpack
-  __m128i mask = _mm_set_epi8(12, 13, 14, 15, /**/ 4, 5, 6, 7,  /**/ 8, 9, 10, 11,  /**/ 0, 1, 2, 3 );
-
-  __m128i u0 = _mm_unpacklo_epi32(s[0], s[1]);   // S2_1 S2_0 S3_1 S3_0
-  __m128i u1 = _mm_unpackhi_epi32(s[0], s[1]);   // S0_1 S0_0 S1_1 S1_0
-
-  __m128i u2 = _mm_unpacklo_epi32(s[2], s[3]);   // S2_3 S2_2 S3_3 S3_2
-  __m128i u3 = _mm_unpackhi_epi32(s[2], s[3]);   // S0_3 S0_2 S1_3 S1_2
-
-  __m128i _d3 = _mm_unpacklo_epi32(u0, u2);      // S3_3 S3_1 S3_2 S3_0
-  __m128i _d2 = _mm_unpackhi_epi32(u0, u2);      // S2_3 S2_1 S2_2 S2_0
-  __m128i _d1 = _mm_unpacklo_epi32(u1, u3);      // S1_3 S1_1 S1_2 S1_0
-  __m128i _d0 = _mm_unpackhi_epi32(u1, u3);      // S0_3 S0_1 S0_2 S0_0
-
-  _d0 = _mm_shuffle_epi8(_d0, mask);
-  _d1 = _mm_shuffle_epi8(_d1, mask);
-  _d2 = _mm_shuffle_epi8(_d2, mask);
-  _d3 = _mm_shuffle_epi8(_d3, mask);
-
-  _mm_store_si128((__m128i *)d0, _d0);
-  _mm_store_si128((__m128i *)d1, _d1);
-  _mm_store_si128((__m128i *)d2, _d2);
-  _mm_store_si128((__m128i *)d3, _d3);
-
-  // --------------------
-
-  u0 = _mm_unpacklo_epi32(s[4], s[5]);
-  u1 = _mm_unpackhi_epi32(s[4], s[5]);
-
-  u2 = _mm_unpacklo_epi32(s[6], s[7]);
-  u3 = _mm_unpackhi_epi32(s[6], s[7]);
-
-  _d3 = _mm_unpacklo_epi32(u0, u2);
-  _d2 = _mm_unpackhi_epi32(u0, u2);
-  _d1 = _mm_unpacklo_epi32(u1, u3);
-  _d0 = _mm_unpackhi_epi32(u1, u3);
-
-  _d0 = _mm_shuffle_epi8(_d0, mask);
-  _d1 = _mm_shuffle_epi8(_d1, mask);
-  _d2 = _mm_shuffle_epi8(_d2, mask);
-  _d3 = _mm_shuffle_epi8(_d3, mask);
-
-  _mm_store_si128((__m128i *)(d0 + 16), _d0);
-  _mm_store_si128((__m128i *)(d1 + 16), _d1);
-  _mm_store_si128((__m128i *)(d2 + 16), _d2);
-  _mm_store_si128((__m128i *)(d3 + 16), _d3);
-
 }
 
-
-void sha256sse_2B(
-  uint32_t *i0,
-  uint32_t *i1,
-  uint32_t *i2,
-  uint32_t *i3,
-  unsigned char *d0,
-  unsigned char *d1,
-  unsigned char *d2,
-  unsigned char *d3) {
+void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
+  uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
 
   __m128i s[8];
 
@@ -553,6 +528,11 @@ void sha256sse_2B(
 
 }
 
+void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
+  uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+  sha256sse_1B(i0, i1, i2, i3, d0, d1, d2, d3);
+}
+
 void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
   uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
 
@@ -576,52 +556,4 @@ void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
 
 }
 
-#if 0
-void sha256sse_test() {
-
-  unsigned char h0[32];
-  unsigned char h1[32];
-  unsigned char h2[32];
-  unsigned char h3[32];
-  unsigned char ch0[32];
-  unsigned char ch1[32];
-  unsigned char ch2[32];
-  unsigned char ch3[32];
-  unsigned char m0[64];
-  unsigned char m1[64];
-  unsigned char m2[64];
-  unsigned char m3[64];
-
-  strcpy((char *)m0, "This is a test message to test 01");
-  strcpy((char *)m1, "This is a test message to test 02");
-  strcpy((char *)m2, "This is a test message to test 03");
-  strcpy((char *)m3, "This is a test message to test 04");
-
-  sha256_33(m0, ch0);
-  sha256_33(m1, ch1);
-  sha256_33(m2, ch2);
-  sha256_33(m3, ch3);
-
-  sha256sse_33(m0,m1,m2,m3,h0,h1,h2,h3);
-
-  if((sha256_hex(h0) != sha256_hex(ch0)) ||
-     (sha256_hex(h1) != sha256_hex(ch1)) ||
-     (sha256_hex(h2) != sha256_hex(ch2)) ||
-     (sha256_hex(h3) != sha256_hex(ch3))) {
-
-    printf("SHA() Results Wrong !\n");
-    printf("SHA: %s\n", sha256_hex(ch0).c_str());
-    printf("SHA: %s\n", sha256_hex(ch1).c_str());
-    printf("SHA: %s\n", sha256_hex(ch2).c_str());
-    printf("SHA: %s\n\n", sha256_hex(ch3).c_str());
-    printf("SSE: %s\n", sha256_hex(h0).c_str());
-    printf("SSE: %s\n", sha256_hex(h1).c_str());
-    printf("SSE: %s\n", sha256_hex(h2).c_str());
-    printf("SSE: %s\n\n", sha256_hex(h3).c_str());
-
-  }
-
-  printf("SHA() Results OK !\n");
-
-}
 #endif
