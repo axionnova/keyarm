@@ -17,9 +17,9 @@
 
 #include "ripemd160.h"
 #include <string.h>
-#if defined(__x86_64__) || defined(_M_X64)
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(__arm__) && !defined(__aarch64__)
 #include <immintrin.h>
-#elif defined(__aarch64__)
+#elif defined(__aarch64__) || defined(__arm__)
 #include <arm_neon.h>
 typedef uint32x4_t __m128i;
 #define _mm_set1_epi32(x) vdupq_n_u32(x)

@@ -195,7 +195,7 @@ private:
 
 // Inline routines
 
-#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+#if (defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)) && !defined(__arm__) && !defined(__aarch64__)
 
 // Missing intrinsics
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
@@ -257,8 +257,9 @@ static inline unsigned char _subborrow_u64(unsigned char c, uint64_t a, uint64_t
 
 #elif defined(__aarch64__) || defined(__arm__)
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
-#if defined(__SIZEOF_INT128__)
-    unsigned __int128 res = (unsigned __int128)a * b;
+#if defined(__SIZEOF_INT128__) && (defined(__LP64__) || defined(_LP64))
+    typedef __uint128_t uint128;
+    uint128 res = (uint128)a * b;
     *h = (uint64_t)(res >> 64);
     return (uint64_t)res;
 #else

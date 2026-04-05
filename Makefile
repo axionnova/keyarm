@@ -18,7 +18,7 @@ default:
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -o hash/ripemd160_sse.o -ftree-vectorize -flto -c hash/ripemd160_sse.cpp
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -o hash/sha256_sse.o -ftree-vectorize -flto -c hash/sha256_sse.cpp
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -ftree-vectorize -o keyhunt keyhunt.cpp base58.o rmd160.o hash/ripemd160.o hash/ripemd160_sse.o hash/sha256.o hash/sha256_sse.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o SECP256K1.o  IntMod.o  Random.o IntGroup.o sha3.o keccak.o  -lm -lpthread
-	rm -r *.o
+	rm -f *.o
 
 armv8:
 	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -c oldbloom/bloom.cpp -o oldbloom.o
@@ -40,7 +40,7 @@ armv8:
 	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/ripemd160_sse.o -c hash/ripemd160_sse.cpp
 	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o hash/sha256_sse.o -c hash/sha256_sse.cpp
 	g++ -O3 -march=armv8-a+crypto -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funroll-loops -flto -Wall -Wextra -Wno-deprecated-copy -o keyhunt keyhunt.cpp base58.o rmd160.o hash/ripemd160.o hash/ripemd160_sse.o hash/sha256.o hash/sha256_sse.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o SECP256K1.o  IntMod.o  Random.o IntGroup.o sha3.o keccak.o  -lm -lpthread
-	rm -r *.o
+	rm -f *.o
 
 bsgsd:
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -ftree-vectorize -flto -c oldbloom/bloom.cpp -o oldbloom.o
@@ -62,7 +62,7 @@ bsgsd:
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -o hash/ripemd160_sse.o -ftree-vectorize -flto -c hash/ripemd160_sse.cpp
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -o hash/sha256_sse.o -ftree-vectorize -flto -c hash/sha256_sse.cpp
 	g++ -m64 -march=native -mtune=native -mssse3 -Wall -Wextra -Wno-deprecated-copy -Ofast -ftree-vectorize -o bsgsd bsgsd.cpp base58.o rmd160.o hash/ripemd160.o hash/ripemd160_sse.o hash/sha256.o hash/sha256_sse.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o SECP256K1.o  IntMod.o  Random.o IntGroup.o sha3.o keccak.o  -lm -lpthread
-	rm -r *.o
+	rm -f *.o
 
 legacy:
 	g++ -march=native -mtune=native -Wall -Wextra -Ofast -ftree-vectorize -flto -c oldbloom/bloom.cpp -o oldbloom.o
@@ -80,7 +80,7 @@ legacy:
 	g++ -march=native -mtune=native -Wall -Wextra -Ofast -ftree-vectorize -flto -c gmp256k1/Random.cpp -o Random.o
 	g++ -march=native -mtune=native -Wall -Wextra -Ofast -ftree-vectorize -flto -c gmp256k1/IntGroup.cpp -o IntGroup.o
 	g++ -march=native -mtune=native -Wall -Wextra -Ofast -ftree-vectorize -o keyhunt keyhunt_legacy.cpp base58.o bloom.o oldbloom.o xxhash.o util.o Int.o  Point.o GMP256K1.o  IntMod.o  IntGroup.o Random.o hashing.o sha3.o keccak.o -lm -lpthread -lcrypto -lgmp	
-	rm -r *.o
+	rm -f *.o
 
 clean:
 	rm -f keyhunt
