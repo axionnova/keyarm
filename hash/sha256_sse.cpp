@@ -18,20 +18,8 @@
 #include "sha256.h" // Inclui a versão C de SHA256
 #include <arm_neon.h> // Ainda precisamos de NEON para outras partes, se houver
 
-// Desabilitar temporariamente as pragmas de target para ARMv8 Crypto para testar o fallback
-// #if defined(__arm__)
-// #pragma GCC target ("fpu=crypto-neon-fp-armv8")
-// #elif defined(__aarch64__)
-// #pragma GCC target ("arch=armv8-a+crypto")
-// #endif
-
 #include <string.h>
 #include <stdint.h>
-
-// Fallback function for SHA256 using the generic C implementation
-void sha256_block_fallback(uint32_t* state, const uint32_t* data) {
-    _sha256::Transform(state, (const unsigned char*)data);
-}
 
 #if (defined(__x86_64__) || defined(_M_X64)) && !defined(__arm__) && !defined(__aarch64__)
 #include <immintrin.h>
@@ -400,34 +388,44 @@ void sha256sse_1B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
   _mm_store_si128((__m128i *)(d2 + 16), _d2);
   _mm_store_si128((__m128i *)(d3 + 16), _d3);
 
+} // End of namespace _sha256sse
+
+#endif // (defined(__x86_64__) || defined(_M_X64)) && !defined(__arm__) && !defined(__aarch64__)
+
+// ARM specific code or fallback
+#if defined(__arm__) || defined(__aarch64__)
+
+// Fallback function for SHA256 using the generic C implementation
+void sha256_block_fallback(uint32_t* state, const uint32_t* data) {
+    sha256((uint8_t*)data, 64, (uint8_t*)state);
 }
 
-void sha256sse_2B(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
-  uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
-  sha256sse_1B(i0, i1, i2, i3, d0, d1, d2, d3);
-}
+// ARMv8 Crypto intrinsics (commented out for now due to "Illegal instruction" issue)
+// #if defined(__arm__)
+// #pragma GCC target ("fpu=crypto-neon-fp-armv8")
+// #elif defined(__aarch64__)
+// #pragma GCC target ("arch=armv8-a+crypto")
+// #endif
 
-void sha256sse_checksum(uint32_t *i0, uint32_t *i1, uint32_t *i2, uint32_t *i3,
-  uint8_t *d0, uint8_t *d1, uint8_t *d2, uint8_t *d3) {
+// void sha256_armv8_block(uint32_t* state, const uint32_t* data) {
+//     uint32x4_t h0_h3 = vld1q_u32(state);
+//     uint32x4_t h4_h7 = vld1q_u32(state + 4);
 
-  __m128i s[8];
+//     uint32x4_t w0_w3 = vld1q_u32(data);
+//     uint32x4_t w4_w7 = vld1q_u32(data + 4);
+//     uint32x4_t w8_w11 = vld1q_u32(data + 8);
+//     uint32x4_t w12_w15 = vld1q_u32(data + 12);
 
-  _sha256sse::Initialize(s);
-  _sha256sse::Transform2(s, i0, i1, i2, i3);
+//     // Initial rounds
+//     h0_h3 = vsha256h_u32(h0_h3, h4_h7, w0_w3);
+//     h4_h7 = vsha256h2_u32(h4_h7, h0_h3, w4_w7);
 
-#ifndef WIN64
-  uint32_t *s32 = (uint32_t *)(&s[0]);
-  *((uint32_t *)d0) = __builtin_bswap32(s32[3]);
-  *((uint32_t *)d1) = __builtin_bswap32(s32[2]);
-  *((uint32_t *)d2) = __builtin_bswap32(s32[1]);
-  *((uint32_t *)d3) = __builtin_bswap32(s32[0]);
-#else
-  *((uint32_t *)d0) = _byteswap_ulong(s[0].m128i_u32[3]);
-  *((uint32_t *)d1) = _byteswap_ulong(s[0].m128i_u32[2]);
-  *((uint32_t *)d2) = _byteswap_ulong(s[0].m128i_u32[1]);
-  *((uint32_t *)d3) = _byteswap_ulong(s[0].m128i_u32[0]);
-#endif
+//     // Subsequent rounds
+//     h0_h3 = vsha256su0q_u32(h0_h3, h4_h7, w8_w11);
+//     h4_h7 = vsha256su1q_u32(h4_h7, h0_h3, w12_w15);
 
-}
+//     vst1q_u32(state, h0_h3);
+//     vst1q_u32(state + 4, h4_h7);
+// }
 
-#endif
+#endif // defined(__arm__) || defined(__aarch64__)
