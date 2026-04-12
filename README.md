@@ -103,6 +103,13 @@ if you have problems compiling the `main` version you can compile the `legacy` v
 make legacy
 ```
 
+if you are targeting a Rockchip RK3228, Raspberry Pi, or any 32-bit ARMv7-A device with limited memory (like 1GB RAM) you can use the tailored `rk3228` target. This target applies Hard-Float FPU/NEON compiler optimizations and triggers dynamic active memory inspection out-of-the-box:
+
+```
+make rk3228
+```
+
+Once executed on low-RAM Linux (such as Armbian or Ubuntu minimal), `keyhunt` evaluates its Bloom filter sizing against the kernel's `sysinfo` free RAM, automatically downgrading allocation if it would otherwise trigger an OOM-Killer.
 
 and then execute with `-h` to see the help
 
