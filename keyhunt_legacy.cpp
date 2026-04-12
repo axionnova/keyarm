@@ -890,7 +890,7 @@ int main(int argc, char **argv)	{
 				N_SEQUENTIAL_MAX = 0x100000000;
 			}
 		}
-		printf("[+] N = %p\n",(void*)N_SEQUENTIAL_MAX);
+		printf("[+] N = 0x%llx\n", (unsigned long long)N_SEQUENTIAL_MAX);
 		if(FLAGMODE == MODE_MINIKEYS)	{
 			BSGS_N.SetInt32(DEBUGCOUNT);
 			if(FLAGBASEMINIKEY)	{

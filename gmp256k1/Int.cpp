@@ -47,13 +47,13 @@ Int::Int(const char *str)	{
 
 Int::Int(const uint64_t u64)	{
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE, "%lu", u64);
+	snprintf(my_str_value,U64STRINGSIZE, "%llu", (unsigned long long)u64);
 	mpz_init_set_str(num,my_str_value,0);
 }
 
 Int::Int(const int64_t i64)	{
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE,"%li", i64);
+	snprintf(my_str_value,U64STRINGSIZE,"%lli", (long long)i64);
 	mpz_init_set_str(num,my_str_value,0);
 }
 
@@ -65,7 +65,7 @@ Int::Int(const Int &value)	{
 void Int::Add(const uint64_t u64)	{
 	mpz_t value;
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE,"%lu", u64);
+	snprintf(my_str_value,U64STRINGSIZE,"%llu", (unsigned long long)u64);
 	mpz_init_set_str(value,my_str_value,0);
 	mpz_add(num,num,value);
 	mpz_clear(value);
@@ -90,7 +90,7 @@ void Int::Sub(const uint32_t u32)	{
 void Int::Sub(const uint64_t u64)	{
 	mpz_t value;
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE,"%lu", u64);
+	snprintf(my_str_value,U64STRINGSIZE,"%llu", (unsigned long long)u64);
 	mpz_init_set_str(value,my_str_value,0);
 	mpz_sub(num,num,value);
 	mpz_clear(value);
@@ -111,7 +111,7 @@ void Int::Mult(Int *a)	{
 void Int::Mult(uint64_t u64)	{
 	mpz_t value;
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE,"%lu", u64);
+	snprintf(my_str_value,U64STRINGSIZE,"%llu", (unsigned long long)u64);
 	mpz_init_set_str(value,my_str_value,0);
 	mpz_mul(num,num,value);
 	mpz_clear(value);
@@ -120,7 +120,7 @@ void Int::Mult(uint64_t u64)	{
 void Int::IMult(int64_t i64)	{
 	mpz_t value;
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value,U64STRINGSIZE,"%li", i64);
+	snprintf(my_str_value,U64STRINGSIZE,"%lli", (long long)i64);
 	mpz_init_set_str(value,my_str_value,0);
 	mpz_mul(num,num,value);
 	mpz_clear(value);
@@ -270,7 +270,7 @@ char* Int::GetBase16()	{
 
 void Int::SetInt64(uint64_t value)	{
 	char my_str_value[U64STRINGSIZE]; // 30 digits + null terminator
-	snprintf(my_str_value, U64STRINGSIZE, "%lu", value);
+	snprintf(my_str_value, U64STRINGSIZE, "%llu", (unsigned long long)value);
 	mpz_set_str(num,my_str_value,0);
 }
 
