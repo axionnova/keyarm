@@ -34,6 +34,7 @@ email: albertobsd@gmail.com
 #endif
 
 #ifdef __unix__
+#include <sys/sysinfo.h>
 #ifdef __CYGWIN__
 #else
 #include <linux/random.h>
@@ -286,7 +287,7 @@ int FLAGQUIET = 0;
 int FLAGMATRIX = 0;
 int KFACTOR = 1;
 int MAXLENGTHADDRESS = -1;
-int NTHREADS = 1;
+int NTHREADS = 4;
 
 int FLAGSAVEREADFILE = 0;
 int FLAGREADEDFILE1 = 0;
@@ -6806,7 +6807,29 @@ bool forceReadFileXPoint(char *fileName)	{
 
 bool initBloomFilter(struct bloom *bloom_arg,uint64_t items_bloom)	{
 	bool r = true;
-	printf("[+] Bloom filter for %" PRIu64 " elements.\n",items_bloom);
+	printf("[+] Bloom filter requested for %" PRIu64 " elements.\n",items_bloom);
+
+#ifdef __linux__
+	struct sysinfo info;
+	if (sysinfo(&info) == 0) {
+		uint64_t free_ram = (uint64_t)info.freeram * (uint64_t)info.mem_unit;
+		uint64_t reserved_ram = 300 * 1024 * 1024; // 300MB reservation limit overhead for the OS
+		uint64_t available_ram = (free_ram > reserved_ram) ? (free_ram - reserved_ram) : 0;
+		uint64_t expected_bytes = (uint64_t)(((long double)items_bloom * 28.7) / 8.0);
+		if (expected_bytes > available_ram) {
+			fprintf(stderr,"[W] Warning: Required RAM for Bloom filter %" PRIu64 " bytes exceeds the safely available RAM limit (%" PRIu64 " bytes).\n", expected_bytes, available_ram);
+			uint64_t max_items = (uint64_t)(((long double)available_ram * 8.0) / 28.7);
+			if (max_items > 1000) {
+				fprintf(stderr,"[W] Scaling down the Bloom parameter to %" PRIu64 " items to respect 1GB RAM constraints.\n", max_items);
+				items_bloom = max_items;
+			} else {
+				fprintf(stderr,"[E] Not enough free memory to allocate Bloom filter minimum structures.\n");
+				return false;
+			}
+		}
+	}
+#endif
+
 	if(items_bloom <= 10000)	{
 		if(bloom_init2(bloom_arg,10000,0.000001) == 1){
 			fprintf(stderr,"[E] error bloom_init for 10000 elements.\n");

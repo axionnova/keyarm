@@ -21,12 +21,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-#if (defined(__x86_64__) || defined(_M_X64)) && !defined(__arm__) && !defined(__aarch64__)
 #include <emmintrin.h>
-#include <immintrin.h>
-#elif defined(__aarch64__) || defined(__arm__)
-#include <arm_neon.h>
-#endif
 
 #define MAX(x,y) (((x)>(y))?(x):(y))
 #define MIN(x,y) (((x)<(y))?(x):(y))

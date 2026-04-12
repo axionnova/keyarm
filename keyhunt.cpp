@@ -264,13 +264,8 @@ struct bloom *vanity_bloom = NULL;
 
 struct bloom bloom;
 
-struct thread_stats {
-	uint64_t steps;
-	unsigned int ends;
-	char padding[64 - sizeof(uint64_t) - sizeof(unsigned int)];
-} __attribute__((aligned(64)));
-
-struct thread_stats *stats = NULL;
+uint64_t *steps = NULL;
+unsigned int *ends = NULL;
 uint64_t N = 0;
 
 uint64_t N_SEQUENTIAL_MAX = 0x100000000;
@@ -572,7 +567,7 @@ int main(int argc, char **argv)	{
 					}
 				}
 				else	{
-					fprintf(stderr,"[E] Invalid Minikey length %zu : %s\n",strlen(optarg),optarg);
+					fprintf(stderr,"[E] Invalid Minikey length %li : %s\n",strlen(optarg),optarg);
 					exit(EXIT_FAILURE);
 				}
 				
@@ -889,7 +884,7 @@ int main(int argc, char **argv)	{
 				N_SEQUENTIAL_MAX = 0x100000000;
 			}
 		}
-		printf("[+] N = 0x%" PRIx64 "\n", N_SEQUENTIAL_MAX);
+		printf("[+] N = %p\n",(void*)N_SEQUENTIAL_MAX);
 		if(FLAGMODE == MODE_MINIKEYS)	{
 			BSGS_N.SetInt32(DEBUGCOUNT);
 			if(FLAGBASEMINIKEY)	{
@@ -1641,7 +1636,7 @@ int main(int argc, char **argv)	{
 					THREADCYCLES++;
 				}
 				
-				printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
+				printf("\r[+] processing %lu/%lu bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
 				fflush(stdout);
 				
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -1697,7 +1692,7 @@ int main(int argc, char **argv)	{
 					}
 
 					if(OLDFINISHED_ITEMS != FINISHED_ITEMS)	{
-						printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : %i%%\r",FINISHED_ITEMS,bsgs_m2,(int) (((double)FINISHED_ITEMS/(double)bsgs_m2)*100));
+						printf("\r[+] processing %lu/%lu bP points : %i%%\r",FINISHED_ITEMS,bsgs_m2,(int) (((double)FINISHED_ITEMS/(double)bsgs_m2)*100));
 						fflush(stdout);
 						OLDFINISHED_ITEMS = FINISHED_ITEMS;
 					}
@@ -1721,7 +1716,7 @@ int main(int argc, char **argv)	{
 						}
 					}
 				}while(FINISHED_THREADS_COUNTER < THREADCYCLES);
-				printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : 100%%     \n",bsgs_m2,bsgs_m2);
+				printf("\r[+] processing %lu/%lu bP points : 100%%     \n",bsgs_m2,bsgs_m2);
 				
 				free(tid);
 				free(bPload_mutex);
@@ -1752,7 +1747,7 @@ int main(int argc, char **argv)	{
 					//if(FLAGDEBUG) printf("[D] PERTHREAD_R: %lu\n",PERTHREAD_R);
 				}
 				
-				printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
+				printf("\r[+] processing %lu/%lu bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
 				fflush(stdout);
 				
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -1811,7 +1806,7 @@ int main(int argc, char **argv)	{
 						}
 					}
 					if(OLDFINISHED_ITEMS != FINISHED_ITEMS)	{
-						printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
+						printf("\r[+] processing %lu/%lu bP points : %i%%\r",FINISHED_ITEMS,bsgs_m,(int) (((double)FINISHED_ITEMS/(double)bsgs_m)*100));
 						fflush(stdout);
 						OLDFINISHED_ITEMS = FINISHED_ITEMS;
 					}
@@ -1836,7 +1831,7 @@ int main(int argc, char **argv)	{
 					}
 					
 				}while(FINISHED_THREADS_COUNTER < THREADCYCLES);
-				printf("\r[+] processing %" PRIu64 "/%" PRIu64 " bP points : 100%%     \n",bsgs_m,bsgs_m);
+				printf("\r[+] processing %lu/%lu bP points : 100%%     \n",bsgs_m,bsgs_m);
 				
 				free(tid);
 				free(bPload_mutex);
@@ -1875,7 +1870,7 @@ int main(int argc, char **argv)	{
 			fflush(stdout);
 		}	
 		if(!FLAGREADEDFILE3)	{
-			printf("[+] Sorting %" PRIu64 " elements... ",bsgs_m3);
+			printf("[+] Sorting %lu elements... ",bsgs_m3);
 			fflush(stdout);
 			bsgs_sort(bPtable,bsgs_m3);
 			sha256((uint8_t*)bPtable, bytes,(uint8_t*) checksum);
@@ -2032,12 +2027,10 @@ int main(int argc, char **argv)	{
 
 		i = 0;
 
-		if (posix_memalign((void**)&stats, 64, NTHREADS * sizeof(struct thread_stats)) != 0) {
-			fprintf(stderr, "[E] posix_memalign stats\n");
-			exit(EXIT_FAILURE);
-		}
-		memset(stats, 0, NTHREADS * sizeof(struct thread_stats));
-		checkpointer((void *)stats, __FILE__, "posix_memalign", "stats", __LINE__ - 1);
+		steps = (uint64_t *) calloc(NTHREADS,sizeof(uint64_t));
+		checkpointer((void *)steps,__FILE__,"calloc","steps" ,__LINE__ -1 );
+		ends = (unsigned int *) calloc(NTHREADS,sizeof(int));
+		checkpointer((void *)ends,__FILE__,"calloc","ends" ,__LINE__ -1 );
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else
@@ -2049,7 +2042,7 @@ int main(int argc, char **argv)	{
 			tt = (tothread*) malloc(sizeof(struct tothread));
 			checkpointer((void *)tt,__FILE__,"malloc","tt" ,__LINE__ -1 );
 			tt->nt = j;
-			stats[j].steps = 0;
+			steps[j] = 0;
 			s = 0;
 			switch(FLAGBSGSMODE)	{
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -2099,12 +2092,10 @@ int main(int argc, char **argv)	{
 		free(aux);
 	}
 	if(FLAGMODE != MODE_BSGS)	{
-		if (posix_memalign((void**)&stats, 64, NTHREADS * sizeof(struct thread_stats)) != 0) {
-			fprintf(stderr, "[E] posix_memalign stats\n");
-			exit(EXIT_FAILURE);
-		}
-		memset(stats, 0, NTHREADS * sizeof(struct thread_stats));
-		checkpointer((void *)stats, __FILE__, "posix_memalign", "stats", __LINE__ - 1);
+		steps = (uint64_t *) calloc(NTHREADS,sizeof(uint64_t));
+		checkpointer((void *)steps,__FILE__,"calloc","steps" ,__LINE__ -1 );
+		ends = (unsigned int *) calloc(NTHREADS,sizeof(int));
+		checkpointer((void *)ends,__FILE__,"calloc","ends" ,__LINE__ -1 );
 #if defined(_WIN64) && !defined(__CYGWIN__)
 		tid = (HANDLE*)calloc(NTHREADS, sizeof(HANDLE));
 #else
@@ -2115,7 +2106,7 @@ int main(int argc, char **argv)	{
 			tt = (tothread*) malloc(sizeof(struct tothread));
 			checkpointer((void *)tt,__FILE__,"malloc","tt" ,__LINE__ -1 );
 			tt->nt = j;
-			stats[j].steps = 0;
+			steps[j] = 0;
 			s = 0;
 			switch(FLAGMODE)	{
 #if defined(_WIN64) && !defined(__CYGWIN__)
@@ -2165,7 +2156,7 @@ int main(int argc, char **argv)	{
 		seconds.AddOne();
 		check_flag = 1;
 		for(j = 0; j <NTHREADS && check_flag; j++) {
-			check_flag &= stats[j].ends;
+			check_flag &= ends[j];
 		}
 		if(check_flag)	{
 			continue_flag = 0;
@@ -2177,7 +2168,7 @@ int main(int argc, char **argv)	{
 				total.SetInt32(0);
 				for(j = 0; j < NTHREADS; j++) {
 					pretotal.Set(&debugcount_mpz);
-					pretotal.Mult(stats[j].steps);					
+					pretotal.Mult(steps[j]);					
 					total.Add(&pretotal);
 				}
 				
@@ -2212,7 +2203,7 @@ int main(int argc, char **argv)	{
 						sprintf(buffer,"[+] Total %s keys in %s seconds: %s keys/s\n",str_total,str_seconds,str_pretotal);
 					}
 					else	{
-						sprintf(buffer,"\r[+] Total %s keys in %s seconds: %s keys/s          ",str_total,str_seconds,str_pretotal);
+						sprintf(buffer,"\r[+] Total %s keys in %s seconds: %s keys/s\r",str_total,str_seconds,str_pretotal);
 					}
 				}
 				else	{
@@ -2235,10 +2226,10 @@ int main(int argc, char **argv)	{
 					}
 					else	{
 						if(THREADOUTPUT == 1)	{
-							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)          ",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
+							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)\r",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
 						}
 						else	{
-							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)          ",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
+							sprintf(buffer,"\r[+] Total %s keys in %s seconds: ~%s %s (%s keys/s)\r",str_total,str_seconds,str_divpretotal,str_limits_prefixs[salir ? i : i-1],str_pretotal);
 						}
 					}
 					free(str_divpretotal);
@@ -2505,12 +2496,11 @@ void *thread_process_minikeys(void *vargp)	{
 						}
 					}
 				}
-				stats[thread_number].steps++;
+				steps[thread_number]++;
 				count+=1024;
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	}while(continue_flag);
-	stats[thread_number].ends = 1;
 	return NULL;
 }
 
@@ -3083,7 +3073,7 @@ void *thread_process(void *vargp)	{
 				}
 				*/
 
-				stats[thread_number].steps++;
+				steps[thread_number]++;
 
 				// Next start point (startP + GRP_SIZE*G)
 				pp = startP;
@@ -3104,7 +3094,7 @@ void *thread_process(void *vargp)	{
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	} while(continue_flag);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -3520,7 +3510,7 @@ void *thread_process_vanity(void *vargp)	{
 					temp_stride.Mult(&stride);
 					key_mpz.Add(&temp_stride);
 				}
-				stats[thread_number].steps++;
+				steps[thread_number]++;
 
 				// Next start point (startP + GRP_SIZE*G)
 				pp = startP;
@@ -3541,7 +3531,7 @@ void *thread_process_vanity(void *vargp)	{
 			}while(count < N_SEQUENTIAL_MAX && continue_flag);
 		}
 	} while(continue_flag);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -4012,9 +4002,9 @@ pn.y.ModAdd(&GSn[i].y);
 				} // end while
 			}// End if 
 		}
-		stats[thread_number].steps+=2;
+		steps[thread_number]+=2;
 	}while(1);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -4267,9 +4257,9 @@ pn.y.ModAdd(&GSn[i].y);
 			}	//End if
 		} // End for with k bsgs_point_number
 
-		stats[thread_number].steps+=2;
+		steps[thread_number]+=2;
 	}while(1);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -5070,9 +5060,9 @@ pn.y.ModAdd(&GSn[i].y);
 				}//while all the aMP points
 			}// End if 
 		}
-		stats[thread_number].steps+=2;
+		steps[thread_number]+=2;
 	}while(1);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -5327,9 +5317,9 @@ pn.y.ModAdd(&GSn[i].y);
 				}//while all the aMP points
 			}// End if 
 		}
-		stats[thread_number].steps+=2;
+		steps[thread_number]+=2;
 	}while(1);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -5612,9 +5602,9 @@ void *thread_process_bsgs_both(void *vargp)	{
 					}//while all the aMP points
 			}// End if 
 		}
-		stats[thread_number].steps+=2;	
+		steps[thread_number]+=2;	
 	}while(1);
-	stats[thread_number].ends = 1;
+	ends[thread_number] = 1;
 	return NULL;
 }
 
@@ -6542,7 +6532,7 @@ bool forceReadFileXPoint(char *fileName)	{
 						}
 					break;
 					default:
-						fprintf(stderr,"[E] Omiting line unknow length size %zu: %s\n",lenaux,aux);
+						fprintf(stderr,"[E] Omiting line unknow length size %li: %s\n",lenaux,aux);
 					break;
 				}
 			}
@@ -6602,7 +6592,7 @@ void writeFileIfNeeded(const char *fileName)	{
 		snprintf(fileBloomName,30,"data_%s.dat",hexPrefix);
 		fileDescriptor = fopen(fileBloomName,"wb");
 		dataSize = N * (sizeof(struct address_value));
-		printf("[D] size data %" PRIu64 "\n",dataSize);
+		printf("[D] size data %li\n",dataSize);
 		if(fileDescriptor != NULL)	{
 			printf("[+] Writing file %s ",fileBloomName);
 			
